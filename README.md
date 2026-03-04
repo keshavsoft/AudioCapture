@@ -1,126 +1,139 @@
-# Node.js Microphone Capture (Windows)
+# Offline Voice-to-Text with Node.js (Windows)
 
-A minimal Node.js example that records audio from the Windows microphone and saves it to a WAV file using **SoX**.
+This project records audio from the Windows microphone and converts it to text using **SoX + Whisper.cpp**, completely **offline**.
 
-This project demonstrates:
+The program performs:
 
-* Accessing the Windows microphone
-* Recording audio using Node.js
-* Saving the recording as `voice.wav`
+```
+Microphone → SoX → voice.wav → Whisper.cpp → Text
+```
+
+No cloud APIs are required.
 
 ---
 
-# 1. Requirements
+# 1. Prerequisites
 
-You must install the following:
+Install the following tools before running the project.
 
-1. **Node.js**
-   Download: https://nodejs.org
+## 1. Node.js
 
-2. **SoX (Sound eXchange)**
-   Download:
-   https://sourceforge.net/projects/sox/files/sox/
+Download and install:
 
-Download the Windows version (example: `sox-14.4.2-win32.zip`)
+https://nodejs.org
+
+Verify:
+
+```
+node -v
+```
 
 ---
 
-# 2. Install SoX
+## 2. SoX (Audio Recorder)
 
-1. Extract the zip file
+Download:
 
-Example location:
+https://sourceforge.net/projects/sox/files/sox/
 
-```
-C:\Program Files (x86)\sox-14-4-2
-```
+Install and add SoX to **PATH**.
 
-2. Add this folder to the **Windows PATH**
-
-Steps:
-
-```
-Start
-→ Environment Variables
-→ Edit system environment variables
-→ Environment Variables
-→ Path
-→ New
-→ paste the SoX folder path
-```
-
-3. Open a new terminal and test:
+Verify installation:
 
 ```
 sox --version
 ```
 
-Expected output:
-
-```
-SoX v14.4.2
-```
-
 ---
 
-# 3. Find Your Microphone Device Name
-
-Run this command:
-
-```
-sox -V6 -n -t waveaudio dummy
-```
-
-Or test recording:
-
-```
-sox -t waveaudio "YOUR DEVICE NAME" test.wav
-```
-
-Example device name:
-
-```
-Microphone Array (Intel® Smart Sound Technology for Digital Microphones)
-```
-
----
-
-# 4. Project Setup
+## 3. Build Whisper.cpp
 
 Clone the repository:
 
 ```
-git clone https://github.com/YOUR_USERNAME/node-mic-recording.git
+git clone https://github.com/ggerganov/whisper.cpp
 ```
 
 Enter the folder:
 
 ```
-cd node-mic-recording
+cd whisper.cpp
+```
+
+Build Whisper:
+
+```
+cmake -B build
+cmake --build build --config Release
+```
+
+After build completes you will get:
+
+```
+build/bin/Release/whisper-cli.exe
 ```
 
 ---
 
-# 5. Update Device Name
+# 4. Download Whisper Model
 
-Open `app.js`.
+Download a model from:
 
-Replace this line with your microphone device name:
+https://huggingface.co/ggerganov/whisper.cpp
+
+Recommended lightweight model:
 
 ```
-"Microphone Array (Intel® Smart Sound Technology for Digital Microphones)"
+ggml-tiny.en.bin
 ```
 
-Your device name may be different.
+Place it in:
+
+```
+models/ggml-tiny.en.bin
+```
 
 ---
 
-# 6. Run the Application
+# 5. Project Structure
 
-Start recording:
+Example project layout:
 
 ```
-node app.js
+AudioCapture
+│
+├─ combined.js
+├─ voice.wav
+│
+├─ Release
+│   └─ whisper-cli.exe
+│
+└─ models
+    └─ ggml-tiny.en.bin
+```
+
+---
+
+# 6. Configure Microphone
+
+Open **combined.js** and update the microphone device name if necessary:
+
+Example:
+
+```
+Microphone Array (Intel® Smart Sound Technology for Digital Microphones)
+```
+
+You can find device names using Windows **Sound Settings → Recording Devices**.
+
+---
+
+# 7. Run the Application
+
+Start the program:
+
+```
+node combined.js
 ```
 
 You will see:
@@ -131,62 +144,76 @@ Recording... Press Ctrl+C to stop
 
 Speak into the microphone.
 
-Stop recording with:
+Press:
 
 ```
 Ctrl + C
 ```
 
----
+Recording stops and Whisper transcribes the audio.
 
-# 7. Output
-
-After stopping, the file will be saved:
+Example output:
 
 ```
-voice.wav
-```
-
-You can play it using any audio player.
-
----
-
-# 8. Project Structure
-
-```
-project-folder
-│
-├─ app.js
-├─ README.md
-└─ voice.wav (generated after recording)
+Recording stopped
+Transcribing...
+TEXT: Hello, how are you? Good morning.
+Done
 ```
 
 ---
 
-# 9. How It Works
+# 8. How It Works
 
-The program runs the following SoX command internally:
+The script performs two steps.
 
-```
-sox -t waveaudio "Microphone Device Name" voice.wav
-```
-
-Pipeline:
+## Step 1 – Record audio
 
 ```
-Microphone
-   ↓
-Windows Audio System
-   ↓
-SoX
-   ↓
-Node.js
-   ↓
-voice.wav
+sox -t waveaudio "Microphone Device Name" -r 16000 -c 1 voice.wav
 ```
+
+This records microphone audio.
+
+## Step 2 – Transcribe speech
+
+```
+whisper-cli.exe -m models/ggml-tiny.en.bin -f voice.wav --no-timestamps
+```
+
+Whisper converts the recorded audio to text.
 
 ---
 
-# 10. License
+# 9. Why This Approach
 
-MIT License
+Advantages:
+
+* Works **fully offline**
+* No API keys required
+* Fast local transcription
+* Works with Node.js applications
+* Can be integrated into **VS Code extensions**
+
+---
+
+# 10. Future Improvements
+
+Possible next steps:
+
+* Real-time speech streaming
+* Automatic microphone detection
+* Voice typing in VS Code editor
+* Continuous speech recognition
+* Command-based voice control
+
+---
+
+# 11. License
+
+This project depends on:
+
+* Whisper.cpp
+* SoX
+
+Please follow their respective licenses.
